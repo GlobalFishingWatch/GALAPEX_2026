@@ -1,0 +1,1 @@
+The Analyst Handbook (AH) is intended as a guide for Global Fishing Watch (GFW) analysts for how best to apply GFW datasets to analyses and reports which may be presented to partners or the public. See the [Wiki](https://github.com/GlobalFishingWatch/analysis-handbook/wiki) for guides for commonly-run analyses.
