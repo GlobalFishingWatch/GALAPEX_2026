@@ -41,3 +41,5 @@ con <- DBI::dbConnect(drv = bigrquery::bigquery(),
                       use_legacy_sql = FALSE)
 ```
 
+ 
+ 
