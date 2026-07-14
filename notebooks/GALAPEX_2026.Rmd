@@ -28,7 +28,7 @@ load_or_install_libraries <- function(x){
 # remotes::install_github("GlobalFishingWatch/gfwr", force=T)
 
 #  Then try/install packages...
-load_or_install_libraries( c("tidyverse" , "bigrquery" ,"devtools", "DBI","glue", "lubridate", "here", "sf", "extrafont", "patchwork", "terra", "rgeos", "ggspatial", "gfwr") )
+load_or_install_libraries( c("tidyverse" , "bigrquery" ,"devtools", "DBI","glue", "lubridate", "here", "sf", "extrafont", "patchwork", "terra", "rgeos", "ggspatial", "gfwr", "ggplot2") )
 
 # get fishwatch r independently 
 if (!require("fishwatchr")) {devtools::install_github("GlobalFishingWatch/fishwatchr")}
@@ -41,5 +41,70 @@ con <- DBI::dbConnect(drv = bigrquery::bigquery(),
                       use_legacy_sql = FALSE)
 ```
 
-   
- 
+
+## create gmr/hmr shapefiles
+```{r}
+
+# read your polygon (any supported format)
+gal_buffer_poly <- st_read(here::here("data", "shapefiles", "Combined_buffer_30nm.geojson" ))
+aoi2_poly <- st_read(here::here("data", "shapefiles", "AOI2_altamar_ZEE.geojson" ))
+
+# convert to WKT
+gal_buffer_poly$wkt <- st_as_text(gal_buffer_poly$geometry)
+aoi2_poly$wkt <- st_as_text(aoi2_poly$geometry)
+# Convert to WKT and pull the first exact text string
+wkt_string_aoi2 <- as.character(aoi2_poly$wkt[1])
+
+```
+
+
+## VMS gaps query
+```{r}
+
+start_date <- "'2026-04-01 00:00:00 UTC'" 
+end_date <- "'2026-07-01 00:00:00 UTC'" 
+# gap_dur_h <- 3
+
+wkt_string <- wkt_string_aoi2
+
+# load query
+VMS_query <- readr::read_file(here::here("queries", "GALAPEX_VMS.sql"))
+
+## select vessel lists
+VMS_gaps <- 
+  fishwatchr::gfw_query(query = glue::glue(VMS_query, 
+                                                    start_date = start_date,
+                                                    end_date = end_date,
+                                                    wkt_string = wkt_string),
+                                                    # prev_visit_search_date = prev_visit_search_date),
+                                 run_query = TRUE,
+                                 con = con)$data
+
+PAN_encounters_vois$gfw_potential_risk <- as.logical(PAN_encounters_vois$gfw_potential_risk)
+PAN_encounters_amp_novois$gfw_potential_risk <- as.logical(PAN_encounters_amp_novois$gfw_potential_risk)
+
+```
+
+
+```{r}
+
+# VMS_gaps_buffer_all <- as.data.frame(read.csv(here::here("data", "CMAR", "Ecuador", "PatrolAnalysis", "VMS_gaps_buffer_all.csv"), header=T) )
+# AIS_gaps_buffer_all <- as.data.frame(read.csv(here::here("data", "CMAR", "Ecuador", "PatrolAnalysis", "AIS_gaps_buffer_all.csv"), header=T) )
+# VMS_buffer <- as.data.frame(read.csv(here::here("data", "CMAR", "Ecuador", "PatrolAnalysis", "VMS_2024-25.csv"), header=T) )
+# VMS_buffer$nnet_score <- as.factor(VMS_buffer$nnet_score)
+
+ggplot(VMS_gaps_buffer_all, aes(gap_speed_kts)) +
+  geom_histogram()
+
+AIS_gaps_buffer_all %>% dplyr::filter(gap_dur_h < 500) %>% 
+  ggplot(aes(gap_dur_h)) +
+  geom_histogram()
+
+VMS_buffer %>% dplyr::filter(speed_knots < 20) %>% 
+ggplot(aes(speed_knots)) +
+  geom_histogram()
+
+VMS_buffer %>% dplyr::filter(speed_knots < 20) %>% 
+ggplot(aes(nnet_score, speed_knots)) +
+  geom_boxplot()
+```
