@@ -45,15 +45,23 @@ con <- DBI::dbConnect(drv = bigrquery::bigquery(),
 ## create gmr/hmr shapefiles
 ```{r}
 
-# read your polygon (any supported format)
-gal_buffer_poly <- st_read(here::here("data", "shapefiles", "Combined_buffer_30nm.geojson" ))
+# read the polygons (any supported format)
+# gal_buffer_poly <- st_read(here::here("data", "shapefiles", "Combined_buffer_30nm.geojson" ))
+aoi1_poly <- st_read(here::here("data", "shapefiles", "Combined_buffer_30nm.geojson" ))
 aoi2_poly <- st_read(here::here("data", "shapefiles", "AOI2_altamar_ZEE.geojson" ))
 
-# convert to WKT
-gal_buffer_poly$wkt <- st_as_text(gal_buffer_poly$geometry)
-aoi2_poly$wkt <- st_as_text(aoi2_poly$geometry)
-# Convert to WKT and pull the first exact text string
-wkt_string_aoi2 <- as.character(aoi2_poly$wkt[1])
+# Combine them into one unified geometry using st_union
+aoi_both_poly <- st_union(aoi1_poly, aoi2_poly)
+
+# Convert single unified polygon into text (>1 area combined, also combining multiple steps)
+wkt_string_both <- as.character(st_as_text(st_geometry(aoi_both_poly)[1]))
+
+# convert to WKT (one at a time)
+# gal_buffer_poly$wkt <- st_as_text(gal_buffer_poly$geometry)
+# aoi2_poly$wkt <- st_as_text(aoi2_poly$geometry)
+# # Convert to WKT and pull the first exact text string
+# gal_buffer_poly <- as.character(gal_buffer_poly$wkt[1])
+# wkt_string_aoi2 <- as.character(aoi2_poly$wkt[1])
 
 ```
 
@@ -61,30 +69,90 @@ wkt_string_aoi2 <- as.character(aoi2_poly$wkt[1])
 ## VMS gaps query
 ```{r}
 
-start_date <- "'2026-04-01 00:00:00 UTC'" 
-end_date <- "'2026-07-01 00:00:00 UTC'" 
-# gap_dur_h <- 3
 
-wkt_string <- wkt_string_aoi2
+# historical analysis
+start_date1 <- "'2023-08-15 00:00:00 UTC'" 
+end_date1 <- "'2023-09-15 00:00:00 UTC'" 
+start_date2 <- "'2024-08-15 00:00:00 UTC'" 
+end_date2 <- "'2024-09-15 00:00:00 UTC'" 
+start_date3 <- "'2025-08-15 00:00:00 UTC'" 
+end_date3 <- "'2025-09-15 00:00:00 UTC'" 
+
+# recent view analysis
+start_date4 <- "'2026-04-01 00:00:00 UTC'" 
+end_date4 <- "'2026-07-01 00:00:00 UTC'" 
 
 # load query
 VMS_query <- readr::read_file(here::here("queries", "GALAPEX_VMS.sql"))
 
-## select vessel lists
-VMS_gaps <- 
+# pick AOI
+# wkt_string <- gal_buffer_poly
+wkt_string <- wkt_string_both
+
+## run query
+# VMS_gaps_aoi1 <- 
+VMS_gaps_all <-
   fishwatchr::gfw_query(query = glue::glue(VMS_query, 
-                                                    start_date = start_date,
-                                                    end_date = end_date,
+                                                    start_date1 = start_date1,
+                                                    end_date1 = end_date1,
+                                                    start_date2 = start_date2,
+                                                    end_date2 = end_date2,
+                                                    start_date3 = start_date3,
+                                                    end_date3 = end_date3,
+                                                    start_date4 = start_date4,
+                                                    end_date4 = end_date4,
                                                     wkt_string = wkt_string),
                                                     # prev_visit_search_date = prev_visit_search_date),
                                  run_query = TRUE,
                                  con = con)$data
 
-PAN_encounters_vois$gfw_potential_risk <- as.logical(PAN_encounters_vois$gfw_potential_risk)
-PAN_encounters_amp_novois$gfw_potential_risk <- as.logical(PAN_encounters_amp_novois$gfw_potential_risk)
+# vms_gaps <- rbind(VMS_gaps_aoi1, VMS_gaps_aoi2)
+write_csv(VMS_gaps_all, file=here::here("data", "vms_gaps_all.csv"))
 
 ```
+## AIS gaps query
+```{r}
 
+# historical analysis
+start_date1 <- "'2023-08-15 00:00:00 UTC'" 
+end_date1 <- "'2023-09-15 00:00:00 UTC'" 
+start_date2 <- "'2024-08-15 00:00:00 UTC'" 
+end_date2 <- "'2024-09-15 00:00:00 UTC'" 
+start_date3 <- "'2025-08-15 00:00:00 UTC'" 
+end_date3 <- "'2025-09-15 00:00:00 UTC'" 
+
+# recent view analysis
+start_date4 <- "'2026-04-01 00:00:00 UTC'" 
+end_date4 <- "'2026-07-01 00:00:00 UTC'" 
+
+
+# load query
+AIS_query <- readr::read_file(here::here("queries", "GALAPEX_AIS.sql"))
+
+# pick AOI
+# wkt_string <- gal_buffer_poly
+wkt_string <- wkt_string_both
+
+## run query
+AIS_gaps_all <- 
+  fishwatchr::gfw_query(query = glue::glue(AIS_query, 
+                                                    start_date1 = start_date1,
+                                                    end_date1 = end_date1,
+                                                    start_date2 = start_date2,
+                                                    end_date2 = end_date2,
+                                                    start_date3 = start_date3,
+                                                    end_date3 = end_date3,
+                                                    start_date4 = start_date4,
+                                                    end_date4 = end_date4,
+                                                    wkt_string = wkt_string),
+                                                    # prev_visit_search_date = prev_visit_search_date),
+                                 run_query = TRUE,
+                                 con = con)$data
+
+ais_gaps <- rbind(AIS_gaps_aoi1, AIS_gaps_aoi2)
+write_csv(AIS_gaps_all, file=here::here("data", "ais_gaps_all.csv"))
+
+```
 
 ```{r}
 

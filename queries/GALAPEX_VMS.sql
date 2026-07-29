@@ -2,8 +2,14 @@
 
 
 ## set time frame of interest
-CREATE TEMP FUNCTION  start_date() AS (TIMESTAMP({start_date}));
-CREATE TEMP FUNCTION  end_date() AS (TIMESTAMP({end_date}));
+CREATE TEMP FUNCTION  start_date1() AS (TIMESTAMP({start_date1}));
+CREATE TEMP FUNCTION  end_date1() AS (TIMESTAMP({end_date1}));
+CREATE TEMP FUNCTION  start_date2() AS (TIMESTAMP({start_date2}));
+CREATE TEMP FUNCTION  end_date2() AS (TIMESTAMP({end_date2}));
+CREATE TEMP FUNCTION  start_date3() AS (TIMESTAMP({start_date3}));
+CREATE TEMP FUNCTION  end_date3() AS (TIMESTAMP({end_date3}));
+CREATE TEMP FUNCTION  start_date4() AS (TIMESTAMP({start_date4}));
+CREATE TEMP FUNCTION  end_date4() AS (TIMESTAMP({end_date4}));
 
 WITH
 
@@ -42,14 +48,18 @@ vms AS(
       CAST(FORMAT_TIMESTAMP('%Y', timestamp) AS INT64) AS year
     FROM `global-fishing-watch.pipe_vms_v4_published.messages`
     WHERE
-    TIMESTAMP_TRUNC(timestamp, DAY) >= start_date()  -- make this anytime from starting date, then filter start gap to actual period of interest in next step
+    TIMESTAMP_TRUNC(timestamp, DAY) >= start_date1()  -- make this anytime from (earliest) starting date, then filter start gap to actual period of interest in next step
     ORDER BY ssvid, timestamp
  ), aoi
     WHERE
     start_gap_port_dist_km > 10
     AND start_gap_shore_dist_km > 5
     AND ST_CONTAINS(aoi.polygon, ST_GEOGPOINT(start_gap_lon, start_gap_lat))
-    AND TIMESTAMP_TRUNC(start_gap_timestamp, DAY) BETWEEN start_date() AND end_date()
+    AND (
+          (TIMESTAMP_TRUNC(start_gap_timestamp, DAY) BETWEEN start_date1() AND end_date1()) OR
+          (TIMESTAMP_TRUNC(start_gap_timestamp, DAY) BETWEEN start_date2() AND end_date2()) OR
+          (TIMESTAMP_TRUNC(start_gap_timestamp, DAY) BETWEEN start_date3() AND end_date3()) OR
+          (TIMESTAMP_TRUNC(start_gap_timestamp, DAY) BETWEEN start_date4() AND end_date4()) )
 ),
 
 ----------------------------------------------------------------------
@@ -259,8 +269,8 @@ gap_speed_logic AS(
   FROM speed_calc
 --- filter for non-ambiguous, >3 or >8h gaps that are not 0km or speed outliers (and < 3 days)
   WHERE
-  gap_time_indicator >= 1
-  AND (gap_speed_kts > 0 AND gap_speed_kts <= 25)
+    gap_time_indicator >= 1
+    AND (gap_speed_kts > 0 AND gap_speed_kts <= 25)
 )
 
 ----------------------------------------------------------------------
