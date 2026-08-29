@@ -51,7 +51,7 @@ aoi1_poly <- st_read(here::here("data", "shapefiles", "Combined_buffer_30nm.geoj
 aoi2_poly <- st_read(here::here("data", "shapefiles", "AOI2_altamar_ZEE.geojson" ))
 
 # Combine them into one unified geometry using st_union
-aoi_both_poly <- st_union(aoi1_poly, aoi2_poly)
+aoi_both_poly <- st_union(aoi1_poly, aoi2_poly); rm(aoi1_poly, aoi2_poly)
 
 # Convert single unified polygon into text (>1 area combined, also combining multiple steps)
 wkt_string_both <- as.character(st_as_text(st_geometry(aoi_both_poly)[1]))
@@ -80,7 +80,7 @@ end_date3 <- "'2025-09-15 00:00:00 UTC'"
 
 # recent view analysis
 start_date4 <- "'2026-04-01 00:00:00 UTC'" 
-end_date4 <- "'2026-07-01 00:00:00 UTC'" 
+end_date4 <- "'2026-08-15 00:00:00 UTC'" 
 
 # load query
 VMS_query <- readr::read_file(here::here("queries", "GALAPEX_VMS.sql"))
@@ -107,7 +107,8 @@ VMS_gaps_all <-
                                  con = con)$data
 
 # vms_gaps <- rbind(VMS_gaps_aoi1, VMS_gaps_aoi2)
-write_csv(VMS_gaps_all, file=here::here("data", "vms_gaps_all.csv"))
+write.csv(VMS_gaps_all, here::here("data", paste("vms_gaps_all",'_',Sys.Date(),".csv", sep='')), row.names=F)
+
 
 ```
 ## AIS gaps query
@@ -123,7 +124,7 @@ end_date3 <- "'2025-09-15 00:00:00 UTC'"
 
 # recent view analysis
 start_date4 <- "'2026-04-01 00:00:00 UTC'" 
-end_date4 <- "'2026-07-01 00:00:00 UTC'" 
+end_date4 <- "'2026-08-15 00:00:00 UTC'" 
 
 
 # load query
@@ -149,8 +150,8 @@ AIS_gaps_all <-
                                  run_query = TRUE,
                                  con = con)$data
 
-ais_gaps <- rbind(AIS_gaps_aoi1, AIS_gaps_aoi2)
-write_csv(AIS_gaps_all, file=here::here("data", "ais_gaps_all.csv"))
+# ais_gaps <- rbind(AIS_gaps_aoi1, AIS_gaps_aoi2)
+write.csv(AIS_gaps_all, here::here("data", paste("ais_gaps_all",'_',Sys.Date(),".csv", sep='')), row.names=F)
 
 ```
 
